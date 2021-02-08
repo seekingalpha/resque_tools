@@ -154,24 +154,6 @@ module ResqueTools
     deleted
   end
 
-  def analyze_delayed
-    redis = Resque.redis
-    timestamps = redis.zrange(:delayed_queue_schedule, 0, -1).map(&:to_i)
-    timestamps.each.with_index do |ts, i|
-      next if ts > new_ts
-
-      jobs = redis.lrange("delayed:#{ts}", 0, -1)
-      jobs.each do |job|
-        data = Oj.load(job)
-        remove_delayed_job(job) if data['class'] == '' && df
-        counts[job['class']][ts.to_i] ||= 0
-        counts[job['class']][ts.to_i] += 1
-      end
-    end
-
-    counts
-  end
-
   def delete_delayed_job(ts_key, job)
     redis.lrem(ts_key, 0, job)
     redis.srem("timestamps:#{job}", ts_key)
